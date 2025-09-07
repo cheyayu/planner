@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Auto Schedule</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Poppins", sans-serif;
+        background: #f7f7f7;
+        padding: 20px;
+        color: #333;
+      }
+      h1 {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .form {
+        max-width: 400px;
+        margin: 0 auto 30px;
+        background: #fff;
+        padding: 25px 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        text-align: center;
+      }
+      .form h2 {
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 20px;
+      }
+      .form .form-group {
+        text-align: left;
+        margin-bottom: 15px;
+      }
+      .form label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 500;
+        font-size: 14px;
+        color: #444;
+      }
+      .form input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-family: "Poppins", sans-serif;
+        font-size: 14px;
+      }
+      .form button {
+        width: 100%;
+        padding: 12px;
+        margin-top: 10px;
+        border: none;
+        border-radius: 8px;
+        font-family: "Poppins", sans-serif;
+        font-size: 15px;
+        font-weight: 500;
+        background: #3b82f6;
+        color: #fff;
+        cursor: pointer;
+      }
+      .form button:hover {
+        background: #2563eb;
+      }
+      .schedule {
+        max-width: 600px;
+        margin: 0 auto;
+      }
+      .task-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin: 20px 0 10px;
+      }
+      .list {
+        background: #fff;
+        padding: 15px;
+        border-radius: 12px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      }
+      .list-item {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+      }
+      .list-item:last-child {
+        border-bottom: none;
+      }
+      .time {
+        font-weight: 600;
+        margin-right: 10px;
+      }
+      /* Watermark */
+      .watermark {
+        text-align: center;
+        margin-top: 40px;
+        font-size: 12px;
+        color: #888;
+        font-style: italic;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Task Auto Scheduler</h1>
+    <div class="form">
+      <h2>Form Jadwal</h2>
+      <div class="form-group">
+        <label for="taskName">Nama Tugas</label>
+        <input type="text" id="taskName" placeholder="Contoh: Matematika" />
+      </div>
+      <div class="form-group">
+        <label for="startTime">Mulai</label>
+        <input type="datetime-local" id="startTime" />
+      </div>
+      <div class="form-group">
+        <label for="deadline">Deadline</label>
+        <input type="datetime-local" id="deadline" />
+      </div>
+      <button onclick="generateSchedule()">Buat Jadwal</button>
+    </div>
+
+    <div class="schedule" id="schedule"></div>
+
+    <!-- Watermark -->
+    <div class="watermark">made with ❤️ by che</div>
+
+    <script>
+      const blockedTimes = {
+        1: [[9.5, 14.67]], // Senin 09:30 - 14:40
+        2: [[7.83, 15.5]], // Selasa 07:50 - 15:30
+        3: [[9.5, 15]], // Rabu 09:30 - 15:00
+        4: [[8.67, 15.33]], // Kamis 08:40 - 15:20
+        5: [[0, 18]], // Jumat 00:00 - 18:00
+      };
+
+      const allowedMinutes = [0, 15, 20, 30, 35, 45, 50, 55];
+
+      function isBlocked(day, start, end) {
+        if (!blockedTimes[day]) return false;
+        return blockedTimes[day].some(
+          ([bStart, bEnd]) => start < bEnd && end > bStart
+        );
+      }
+
+      function formatTime(hourFloat) {
+        let h = Math.floor(hourFloat);
+        let m = Math.round((hourFloat - h) * 60);
+        if (m === 60) {
+          h++;
+          m = 0;
+        }
+        return `${h.toString().padStart(2, "0")}:${m
+          .toString()
+          .padStart(2, "0")}`;
+      }
+
+      function randomBetween(arr) {
+        return arr[Math.floor(Math.random() * arr.length)];
+      }
+
+      function generateSchedule() {
+        const taskName = document.getElementById("taskName").value;
+        const start = new Date(document.getElementById("startTime").value);
+        const end = new Date(document.getElementById("deadline").value);
+        const container = document.getElementById("schedule");
+        container.innerHTML = "";
+
+        if (!taskName || isNaN(start) || isNaN(end)) {
+          alert("Isi semua input!");
+          return;
+        }
+
+        let current = new Date(start);
+        let dayIndex = 1;
+
+        while (current <= end) {
+          let dow = current.getDay();
+          let sessions = [];
+          let totalMinutes = 0;
+
+          while (totalMinutes < 300) {
+            let hour = Math.floor(Math.random() * (22 - 7) + 7);
+            let minute = randomBetween(allowedMinutes);
+            let startHour = hour + minute / 60;
+
+            let duration = Math.floor(Math.random() * (120 - 30 + 1) + 30);
+            let endHour = startHour + duration / 60;
+
+            if (endHour > 22) continue;
+            if (isBlocked(dow, startHour, endHour)) continue;
+            if (
+              sessions.some((s) => !(endHour <= s.start || startHour >= s.end))
+            )
+              continue;
+
+            sessions.push({ start: startHour, end: endHour });
+            totalMinutes += duration;
+
+            if (sessions.length > 6) break;
+          }
+
+          sessions.sort((a, b) => a.start - b.start);
+
+          const title = document.createElement("div");
+          title.className = "task-title";
+          title.textContent = `Hari ${dayIndex} (${current.toDateString()}) - Jadwal ${taskName}`;
+          container.appendChild(title);
+
+          const list = document.createElement("div");
+          list.className = "list";
+
+          sessions.forEach((s) => {
+            const div = document.createElement("div");
+            div.className = "list-item";
+            div.innerHTML = `<span class="time">${formatTime(
+              s.start
+            )} - ${formatTime(s.end)}</span> 
+                           Kerjakan ${taskName} (${Math.round(
+              (s.end - s.start) * 60
+            )} menit)`;
+            list.appendChild(div);
+          });
+
+          container.appendChild(list);
+
+          current.setDate(current.getDate() + 1);
+          dayIndex++;
+        }
+      }
+    </script>
+  </body>
+</html>
